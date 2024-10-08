@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, Table, inspect, text, select
+from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select
 from sqlalchemy import inspect
 from dotenv import load_dotenv
 import os
@@ -27,27 +27,36 @@ class DatabaseManager:
     def column_names(self,table_obj):
         return table_obj.columns.keys()
     
-    def select(self):
+    
+class Queries(DatabaseManager):
+    def __init__(self,):
+        super().__init__()
+    
+    def normal_select(self):
         tables = self.get_tables_names_inspector()
+        results = []
         for table in tables:
             select_query_normal_sql = f"SELECT * FROM {table} LIMIT 3"
             select_query_sqlalchemy_way = select(self.table_from_metadata(table)).limit(3)
             
-            result_normal_sql = self.connection.execute(text(select_query_normal_sql)).fetchall()
+            result_normal_sql = self.connection.execute(text(select_query_normal_sql)).fetchall() #without fetchall this jus ResultProxy obj, but with fetchall is the ResultSet obj containing the data. List of touples
             result_sqlalchemy_way = self.connection.execute(select_query_sqlalchemy_way).fetchall()
-            
-            print(f"""{table} selection normal sql way: {result_normal_sql} 
-{table} selection sqlalchemy way: {result_sqlalchemy_way} \n """)
+            print(f"Table: {table}\n")
+            print(f"Normal SQL Query Result (First 3 rows): {result_normal_sql}")
+            print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
+            print("-" * 40)
+
+
+
 
 def main():
     dbmanager1 = DatabaseManager()
-    print(dbmanager1.get_tables_names_inspector())
+    print(f"table names {dbmanager1.get_tables_names_inspector()}")
     machine_table = dbmanager1.table_from_metadata('machinedata')
     print(f"metadata of {repr(machine_table)} \n")
     print(f"column names of machine data {dbmanager1.column_names(machine_table)}")
-    
-    dbmanager1.select()
-    
+    select_query = Queries()
+    select_query.normal_select()
     
 if __name__ == '__main__':
     main()
