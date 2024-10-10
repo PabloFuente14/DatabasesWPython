@@ -19,7 +19,7 @@ class DatabaseManager:
         inspector = inspect(self.engine)
         return inspector.get_table_names()
     
-    #getting table metadata
+    #getting table metadata/reflectin the table
     def table_from_metadata(self,table):
         table_obj = Table(table, self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
         return table_obj
