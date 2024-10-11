@@ -29,8 +29,15 @@ class DatabaseManager:
     
     
 class Queries(DatabaseManager):
-    def __init__(self,):
+    def __init__(self,menu):
         super().__init__()
+        self.menu = input("""Select wich statement you want to execute: 
+                          1)
+                          2)
+                          3)""")
+        self.basic_select = self.normal_select()
+
+        
     
     def normal_select(self):
         tables = self.get_tables_names_inspector()
@@ -46,8 +53,9 @@ class Queries(DatabaseManager):
             print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
             print("-" * 40)
 
-
-
+    
+    def where_select(self):
+        pass
 
 def main():
     dbmanager1 = DatabaseManager()
@@ -56,7 +64,7 @@ def main():
     print(f"metadata of {repr(machine_table)} \n")
     print(f"column names of machine data {dbmanager1.column_names(machine_table)}")
     select_query = Queries()
-    select_query.normal_select()
+    select_query.basic_select
     
 if __name__ == '__main__':
     main()
