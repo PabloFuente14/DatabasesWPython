@@ -14,7 +14,13 @@ class DatabaseManager:
         load_dotenv('keys.env')
         return os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('PORT'), os.getenv('DBNAME')
     
-    #self.engine.table_names() is depreciated. This the moder way of getting database table names
+    
+#self.engine.table_names() is depreciated. This the moder way of getting database table names   
+class Tables(DatabaseManager): 
+    def __init__(self):
+        super().__init__()
+        
+    
     def get_tables_names_inspector(self):
         inspector = inspect(self.engine)
         return inspector.get_table_names()
@@ -24,20 +30,14 @@ class DatabaseManager:
         table_obj = Table(table, self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
         return table_obj
     
-    def column_names(self,table_obj):
-        return table_obj.columns.keys()
     
     
-class Queries(DatabaseManager):
-    def __init__(self,menu):
+class Selects(Tables):
+    def __init__(self):
         super().__init__()
-        self.menu = input("""Select wich statement you want to execute: 
-                          1)
-                          2)
-                          3)""")
         self.basic_select = self.normal_select()
 
-        
+    
     
     def normal_select(self):
         tables = self.get_tables_names_inspector()
@@ -55,15 +55,18 @@ class Queries(DatabaseManager):
 
     
     def where_select(self):
-        pass
+        table = self.table_from_metadata('herramienta')
+        columns = table.columns.keys()
+        stmt = select([])
 
 def main():
     dbmanager1 = DatabaseManager()
-    print(f"table names {dbmanager1.get_tables_names_inspector()}")
-    machine_table = dbmanager1.table_from_metadata('machinedata')
+    tables = Tables()
+    print(f"table names {tables.get_tables_names_inspector()}")
+    machine_table = tables.table_from_metadata('machinedata')
     print(f"metadata of {repr(machine_table)} \n")
-    print(f"column names of machine data {dbmanager1.column_names(machine_table)}")
-    select_query = Queries()
+    
+    select_query = Selects()
     select_query.basic_select
     
 if __name__ == '__main__':
