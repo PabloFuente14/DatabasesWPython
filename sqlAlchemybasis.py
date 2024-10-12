@@ -17,57 +17,70 @@ class DatabaseManager:
     
 #self.engine.table_names() is depreciated. This the moder way of getting database table names   
 class Tables(DatabaseManager): 
+
     def __init__(self):
         super().__init__()
-        
+        self.table_names = self.get_tables_names_inspector()
+        self.table_metadata,self.column_names = self.table_from_metadata()
     
     def get_tables_names_inspector(self):
         inspector = inspect(self.engine)
         return inspector.get_table_names()
     
-    #getting table metadata/reflectin the table
-    def table_from_metadata(self,table):
-        table_obj = Table(table, self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
-        return table_obj
     
+    def table_selection(self, table = ""):
+        while table not in self.table_names:
+            table = input(f"Escoja la tabla sobre la que quiere trabajar ({self.table_names}): ")
+            self.working_on_table = table
+        return self.working_on_table
+    
+    #getting table metadata/reflectin the table
+    def table_from_metadata(self):
+        table_metadata = Table(self.table_selection(), self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
+        column_names = table_metadata.columns.keys()
+        return table_metadata,column_names
     
     
 class Selects(Tables):
+
     def __init__(self):
         super().__init__()
+        self.table_selected = self.table_selection()
         self.basic_select = self.normal_select()
 
-    
-    
+        
     def normal_select(self):
-        tables = self.get_tables_names_inspector()
-        results = []
-        for table in tables:
-            select_query_normal_sql = f"SELECT * FROM {table} LIMIT 3"
-            select_query_sqlalchemy_way = select(self.table_from_metadata(table)).limit(3)
-            
-            result_normal_sql = self.connection.execute(text(select_query_normal_sql)).fetchall() #without fetchall this jus ResultProxy obj, but with fetchall is the ResultSet obj containing the data. List of touples
-            result_sqlalchemy_way = self.connection.execute(select_query_sqlalchemy_way).fetchall()
-            print(f"Table: {table}\n")
-            print(f"Normal SQL Query Result (First 3 rows): {result_normal_sql}")
-            print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
-            print("-" * 40)
+        
+        select_query_normal_sql = f"SELECT * FROM {self.table_selected} LIMIT 3"
+        select_query_sqlalchemy_way = select(text(self.table_selected)).limit(3)
+        
+        result_normal_sql = self.connection.execute(text(select_query_normal_sql)).fetchall() #without fetchall this jus ResultProxy obj, but with fetchall is the ResultSet obj containing the data. List of touples
+        result_sqlalchemy_way = self.connection.execute(select_query_sqlalchemy_way).fetchall()
+        print(f"Table: {self.table_selected}\n")
+        print(f"Normal SQL Query Result (First 3 rows): {result_normal_sql}")
+        print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
+        print("-" * 40)
 
     
     def where_select(self):
-        table = self.table_from_metadata('herramienta')
-        columns = table.columns.keys()
-        stmt = select([])
-
+        table_herramienta = self.table_from_metadata('herramienta')
+        columns = table_herramienta.columns.keys()
+        print(columns)
+        
 def main():
-    dbmanager1 = DatabaseManager()
-    tables = Tables()
-    print(f"table names {tables.get_tables_names_inspector()}")
-    machine_table = tables.table_from_metadata('machinedata')
-    print(f"metadata of {repr(machine_table)} \n")
+   #dbmanager1 = DatabaseManager()
+   #tables = Tables('machinedata')
+   #print(f"table names {tables.get_tables_names_inspector()}")
+   #machine_table = tables.table_from_metadata()
+   #print(f"metadata of {repr(machine_table)} \n")
     
-    select_query = Selects()
-    select_query.basic_select
+    table = Tables()
+    
+    
+    #select_query = Selects()
+    #print(select_query.table_selected)
+    #select_query.basic_select
+    #select_query.where_select()
     
 if __name__ == '__main__':
     main()
