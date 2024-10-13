@@ -45,27 +45,34 @@ class Selects(Tables):
 
     def __init__(self):
         super().__init__()
-        self.table_selected = self.table_selection()
         self.basic_select = self.normal_select()
 
         
     def normal_select(self):
         
-        select_query_normal_sql = f"SELECT * FROM {self.table_selected} LIMIT 3"
-        select_query_sqlalchemy_way = select(text(self.table_selected)).limit(3)
+        select_query_normal_sql = f"SELECT * FROM {self.table_metadata} LIMIT 3"
+        select_query_sqlalchemy_way = select(self.table_metadata).limit(3)
         
         result_normal_sql = self.connection.execute(text(select_query_normal_sql)).fetchall() #without fetchall this jus ResultProxy obj, but with fetchall is the ResultSet obj containing the data. List of touples
         result_sqlalchemy_way = self.connection.execute(select_query_sqlalchemy_way).fetchall()
-        print(f"Table: {self.table_selected}\n")
-        print(f"Normal SQL Query Result (First 3 rows): {result_normal_sql}")
+        print(f"Table: {self.table_metadata}\n")
+        print(f"Normal SQL Query Result (First 3 rows): {result_normal_sql} \n")
         print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
         print("-" * 40)
 
     
     def where_select(self):
-        table_herramienta = self.table_from_metadata('herramienta')
-        columns = table_herramienta.columns.keys()
-        print(columns)
+        if self.working_on_table == 'herramienta':
+            stmt = select(self.table_metadata).where(self.table_metadata.columns.n_reafilados >= 2).limit(3)
+            results = self.connection.execute(stmt).fetchall()
+            return results
+        
+        elif self.working_on_table == 'machinedata':
+            pass
+        elif self.working_on_table == 'pieza':
+            pass
+        else:
+            pass
         
 def main():
    #dbmanager1 = DatabaseManager()
@@ -74,13 +81,15 @@ def main():
    #machine_table = tables.table_from_metadata()
    #print(f"metadata of {repr(machine_table)} \n")
     
-    table = Tables()
-    
+    select1 = Selects()
+    select1.basic_select
+    print(select1.where_select())
     
     #select_query = Selects()
     #print(select_query.table_selected)
     #select_query.basic_select
     #select_query.where_select()
+    print("jdfk")
     
 if __name__ == '__main__':
     main()
