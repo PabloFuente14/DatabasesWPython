@@ -1,5 +1,7 @@
-from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select
+from ast import While
+from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select, and_, or_, not_
 from sqlalchemy import inspect
+import pandas as pd
 from dotenv import load_dotenv
 import os
 
@@ -46,7 +48,6 @@ class Selects(Tables):
     def __init__(self):
         super().__init__()
         self.basic_select = self.normal_select()
-
         
     def normal_select(self):
         
@@ -60,19 +61,31 @@ class Selects(Tables):
         print(f"SQLAlchemy Query Result (First 3 rows): {result_sqlalchemy_way}\n")
         print("-" * 40)
 
-    
+
     def where_select(self):
+        general_stmt = select(self.table_metadata)
         if self.working_on_table == 'herramienta':
-            stmt = select(self.table_metadata).where(self.table_metadata.columns.n_reafilados >= 2).limit(3)
+            stmt = general_stmt.where(self.table_metadata.columns.n_reafilados >= 2).limit(3)
             results = self.connection.execute(stmt).fetchall()
-            return results
+            return f"First three rows of herramienta with nºreafilados > 2: {results}"  
         
         elif self.working_on_table == 'machinedata':
-            pass
+            df = pd.DataFrame()
+            stmt = general_stmt.where(self.table_metadata.columns['OF'].in_(['47884049']))
+            result_proxy =  chunk =  self.connection.execute(stmt)
+            while True:
+                chunk = result_proxy.fetchmany(500)
+                if not chunk:
+                    break
+                batch_df = pd.DataFrame(chunk, columns = self.column_names)
+                df = pd.concat([df, batch_df], ignore_index= True)
+            return df
+
         elif self.working_on_table == 'pieza':
-            pass
-        else:
-            pass
+            stmt = general_stmt.where(or_(self.table_metadata.columns.of == '47315924', self.table_metadata.columns.resultado_medicion != 0))
+            results = self.connection.execute(stmt).fetchall()
+            return f"Or statement results: {results}"  
+
         
 def main():
    #dbmanager1 = DatabaseManager()
@@ -84,6 +97,7 @@ def main():
     select1 = Selects()
     select1.basic_select
     print(select1.where_select())
+    
     
     #select_query = Selects()
     #print(select_query.table_selected)
