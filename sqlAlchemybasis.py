@@ -1,7 +1,9 @@
 from ast import While
-from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select, and_, or_, not_
+from matplotlib import legend
+from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select, and_, or_, not_, desc
 from sqlalchemy import inspect
 import pandas as pd
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
 
@@ -11,6 +13,9 @@ class DatabaseManager:
         self.engine = create_engine(f"mysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}")
         self.metadata = MetaData()
         self.connection = self.engine.connect()
+     
+    def result_proxy(self,stmt):
+        return self.connection.execute(stmt)
     
     def _get_keys(self):
         load_dotenv('keys.env')
@@ -48,6 +53,7 @@ class Selects(Tables):
     def __init__(self):
         super().__init__()
         self.basic_select = self.normal_select()
+        self.select_where = self.where_select()
         
     def normal_select(self):
         
@@ -72,7 +78,7 @@ class Selects(Tables):
         elif self.working_on_table == 'machinedata':
             df = pd.DataFrame()
             stmt = general_stmt.where(self.table_metadata.columns['OF'].in_(['47884049']))
-            result_proxy =  chunk =  self.connection.execute(stmt)
+            result_proxy = self.connection.execute(stmt)
             while True:
                 chunk = result_proxy.fetchmany(500)
                 if not chunk:
@@ -86,18 +92,42 @@ class Selects(Tables):
             results = self.connection.execute(stmt).fetchall()
             return f"Or statement results: {results}"  
 
+    def aggregate_and_short_data(self):
         
+        def plot_data(df):
+            df.head(10).plot.bar(x = 'id_herramienta', y = 'diametro_herramienta') #legend is the indicative of the color in the plot
+            plt.xlabel("ID Herramienta")
+            plt.ylabel("Diámetro Herramienta")
+            plt.title("Diámetro de herramienta por ID")
+            plt.show()
+            
+        
+        if self.working_on_table == 'herramienta':
+            stmt = select(self.table_metadata).order_by(desc(self.table_metadata.columns.diametro_herramienta))
+            results = self.connection.execute(stmt).fetchall()
+            df = pd.DataFrame(results, columns = self.column_names)
+            df = df.loc[:,['id_herramienta', 'diametro_herramienta']] #all rows and these two columns
+            df.dropna(subset=['diametro_herramienta'])
+            df['diametro_herramienta'] = pd.to_numeric(df['diametro_herramienta'], errors = 'coerce')
+            plot_data(df)
+            return df
+        
+        if self.working_on_table == 'machinedata':
+            pass    
+            
+        
+    
 def main():
-   #dbmanager1 = DatabaseManager()
-   #tables = Tables('machinedata')
-   #print(f"table names {tables.get_tables_names_inspector()}")
-   #machine_table = tables.table_from_metadata()
-   #print(f"metadata of {repr(machine_table)} \n")
+    #dbmanager1 = DatabaseManager()
+    #tables = Tables('machinedata')
+    #print(f"table names {tables.get_tables_names_inspector()}")
+    #machine_table = tables.table_from_metadata()
+    #print(f"metadata of {repr(machine_table)} \n")
     
     select1 = Selects()
     select1.basic_select
-    print(select1.where_select())
-    
+    #print(select1.where_select())
+    print(select1.aggregate_and_short_data())
     
     #select_query = Selects()
     #print(select_query.table_selected)
