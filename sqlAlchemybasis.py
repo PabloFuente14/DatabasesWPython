@@ -1,6 +1,7 @@
 from ast import While
 from matplotlib import legend
-from sqlalchemy import Select, create_engine, MetaData, Table, inspect, text, select, and_, or_, not_, desc
+from pyparsing import col
+from sqlalchemy import Select, create_engine, MetaData, Table, func, inspect, text, select, and_, or_, not_, desc, case
 from sqlalchemy import inspect
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -54,6 +55,9 @@ class Selects(Tables):
         super().__init__()
         self.basic_select = self.normal_select()
         self.select_where = self.where_select()
+       
+            
+        
         
     def normal_select(self):
         
@@ -101,21 +105,54 @@ class Selects(Tables):
             plt.title("Diámetro de herramienta por ID")
             plt.show()
             
-        
+        def data_options():
+            while True:
+                option = int(input("Choose 1 for aggregated sum (1 col), 2 for normal sum (2 col), 3 for groupby and other for passing"))
+                
+                if option == 1:
+                    stmt = select(func.sum(self.table_metadata.columns.n_puntas)).where(self.table_metadata.columns.fabricante == 'WALTER')
+                    self.opt1_sum = self.connection.execute(stmt).fetchall()[0][0]
+                    return f"Nº_puntas needed for WALTER tools {self.opt1_sum}"
+                
+                if option == 2:
+                    stmt = select(self.table_metadata.columns.id_herramienta, self.table_metadata.columns.herramienta, 
+                                ((self.table_metadata.columns['LTH']-self.table_metadata.columns['LV'])/self.table_metadata.columns['LTH']*100).label("Cutting percent"))\
+                                    .where(and_(self.table_metadata.columns.tipo_rosca == "NO ROSCA", self.table_metadata.columns['LTH'] != 0))
+                    self.opt2_percentajeLV = self.connection.execute(stmt).fetchall()
+                    df = pd.DataFrame(self.opt2_percentajeLV, columns = ['id_herramienta','Tipo Hta','Cutting percent'])
+                    return df
+                else:
+                    print("opción no válida")           
+            
+            
         if self.working_on_table == 'herramienta':
-            stmt = select(self.table_metadata).order_by(desc(self.table_metadata.columns.diametro_herramienta))
+            data_options()
+            stmt = select(self.table_metadata.columns.id_herramienta, 
+                          self.table_metadata.columns.diametro_herramienta).order_by(desc(self.table_metadata.columns.diametro_herramienta)) #select id_herramienta, hora from herramienta order by diametro_herramienta asc;
             results = self.connection.execute(stmt).fetchall()
-            df = pd.DataFrame(results, columns = self.column_names)
-            df = df.loc[:,['id_herramienta', 'diametro_herramienta']] #all rows and these two columns
+            df = pd.DataFrame(results, columns = ['id_herramienta', 'diametro_herramienta'])
+            #df = df.loc[:,['id_herramienta', 'diametro_herramienta']] #all rows and these two columns
             df.dropna(subset=['diametro_herramienta'])
             df['diametro_herramienta'] = pd.to_numeric(df['diametro_herramienta'], errors = 'coerce')
             plot_data(df)
             return df
         
         if self.working_on_table == 'machinedata':
-            pass    
-            
+            stmt = select(self.table_metadata).order_by(self.table_metadata.columns['OF'], desc(self.table_metadata.columns.hora)) #if of is the same, order by desc 'hora': select * from machinedata order by `OF`, hora desc;
+            results = self.connection.execute(stmt).fetchall()
+            df = pd.DataFrame(results, columns=self.column_names)
+            return df
         
+        if self.working_on_table == 'pieza':
+            stmt = select(func.count(case(
+            (self.table_metadata.columns.resultado_medicion != '0', 1),
+            else_=None
+          )))
+            results = self.connection.execute(stmt).fetchall()
+            stmt1 = select(self.table_metadata.columns.resultado_medicion).where(self.table_metadata.columns.resultado_medicion != '0')
+            results1= self.connection.execute(stmt1).fetchall()
+            
+            return f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}"
     
 def main():
     #dbmanager1 = DatabaseManager()
@@ -128,7 +165,8 @@ def main():
     select1.basic_select
     #print(select1.where_select())
     print(select1.aggregate_and_short_data())
-    
+    #rint(select1.opt1_sum)
+    print(select1.opt2_percentajeLV)
     #select_query = Selects()
     #print(select_query.table_selected)
     #select_query.basic_select
