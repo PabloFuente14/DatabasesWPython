@@ -56,9 +56,6 @@ class Selects(Tables):
         self.basic_select = self.normal_select()
         self.select_where = self.where_select()
        
-            
-        
-        
     def normal_select(self):
         
         select_query_normal_sql = f"SELECT * FROM {self.table_metadata} LIMIT 3"
@@ -107,11 +104,11 @@ class Selects(Tables):
             
         def data_options():
             while True:
-                option = int(input("Choose 1 for aggregated sum (1 col), 2 for normal sum (2 col), 3 for groupby and other for passing"))
+                option = int(input("Choose 1 for aggregated sum (1 col), 2 for normal sum (2 col), 3 for groupby and other for passing: "))
                 
                 if option == 1:
                     stmt = select(func.sum(self.table_metadata.columns.n_puntas)).where(self.table_metadata.columns.fabricante == 'WALTER')
-                    self.opt1_sum = self.connection.execute(stmt).fetchall()[0][0]
+                    self.opt1_sum = self.connection.execute(stmt).scalar()
                     return f"Nº_puntas needed for WALTER tools {self.opt1_sum}"
                 
                 if option == 2:
@@ -121,6 +118,13 @@ class Selects(Tables):
                     self.opt2_percentajeLV = self.connection.execute(stmt).fetchall()
                     df = pd.DataFrame(self.opt2_percentajeLV, columns = ['id_herramienta','Tipo Hta','Cutting percent'])
                     return df
+                if option == 3:
+                    stmt = select(self.table_metadata.columns.herramienta, func.sum(self.table_metadata.columns.n_reafilados).label("total_reafilados"), 
+                                  func.count(self.table_metadata.columns.herramienta).label("herramientas_por_familia")).where(self.table_metadata.columns.herramienta.in_(['HTA.TORNO', 'BROCA'])).group_by(self.table_metadata.columns.herramienta)
+                    self.opt3_groupby = self.connection.execute(stmt).fetchall()
+                    for result in self.opt3_groupby:
+                        print(f"{result.herramienta} - nºreafilados: {result.total_reafilados} - herramientas por familia: {result.herramientas_por_familia}\n")
+                    return self.opt3_groupby               
                 else:
                     print("opción no válida")           
             
@@ -153,7 +157,9 @@ class Selects(Tables):
             results1= self.connection.execute(stmt1).fetchall()
             
             return f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}"
-    
+
+
+
 def main():
     #dbmanager1 = DatabaseManager()
     #tables = Tables('machinedata')
@@ -165,8 +171,8 @@ def main():
     select1.basic_select
     #print(select1.where_select())
     print(select1.aggregate_and_short_data())
-    #rint(select1.opt1_sum)
-    print(select1.opt2_percentajeLV)
+    # print(select1.opt1_sum)
+    #print(select1.opt2_percentajeLV)
     #select_query = Selects()
     #print(select_query.table_selected)
     #select_query.basic_select
