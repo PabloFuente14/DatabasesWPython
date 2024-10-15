@@ -23,6 +23,7 @@ class DatabaseManager:
         return os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('PORT'), os.getenv('DBNAME')
     
     
+    
 #self.engine.table_names() is depreciated. This the moder way of getting database table names   
 class Tables(DatabaseManager): 
 
@@ -55,6 +56,7 @@ class Selects(Tables):
         super().__init__()
         self.basic_select = self.normal_select()
         self.select_where = self.where_select()
+        self.complex_selects = self.aggregate_and_short_data()
        
     def normal_select(self):
         
@@ -157,20 +159,48 @@ class Selects(Tables):
             results1= self.connection.execute(stmt1).fetchall()
             
             return f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}"
+            
+def menu():
+    table = Tables()
+    opt_menu_1 = None
+    while opt_menu_1 not in [1,2]:
+        opt_menu_1 = int(input(f"""\nChoose what option do you want to select:\n
+                           1) Columns of the table \n
+                           2) Select data from the {table.db}: 
+                           """))
 
-
+    if opt_menu_1 == 1:
+        print(f"The columns in this table are: {table.column_names}")
+    if opt_menu_1 == 2:
+        extra_hta_option = "3) Specific Option for herramienta" if table.working_on_table == 'herramienta' else " "
+        opt_menu_2 = int(input(f"""\n Wich type of select do you want to make?:\n
+                               1) Normal Select\n
+                               2) Where Select\n
+                               {extra_hta_option}
+                               """))
+        select = Selects()
+        print(select.working_on_table)
+        select.working_on_table=table.working_on_table
+       # if opt_menu_2 == 1:
+       #     
+       # if opt_menu_2 == 2:
+       # if opt_menu_2 == 3:
 
 def main():
+    menu()
+    
+    
     #dbmanager1 = DatabaseManager()
     #tables = Tables('machinedata')
     #print(f"table names {tables.get_tables_names_inspector()}")
     #machine_table = tables.table_from_metadata()
     #print(f"metadata of {repr(machine_table)} \n")
-    
-    select1 = Selects()
-    select1.basic_select
-    #print(select1.where_select())
-    print(select1.aggregate_and_short_data())
+
+
+    #select1 = Selects()
+    #select1.basic_select
+    #print(select1.select_where)
+    #print(select1.complex_selects)
     # print(select1.opt1_sum)
     #print(select1.opt2_percentajeLV)
     #select_query = Selects()
