@@ -51,10 +51,7 @@ class Selects(Tables):
 
     def __init__(self):
         super().__init__()
-        #self.basic_select = self.normal_select()
-        #self.select_where = self.where_select()
-        #self.complex_selects = self.aggregate_and_short_data()
-    #
+
        
     def normal_select(self):
         
@@ -74,7 +71,8 @@ class Selects(Tables):
         if self.working_on_table == 'herramienta':
             stmt = general_stmt.where(self.table_metadata.columns.n_reafilados >= 2).limit(3)
             results = self.connection.execute(stmt).fetchall()
-            return f"First three rows of herramienta with nºreafilados > 2: {results}"  
+            print(f"First three rows of herramienta with nºreafilados > 2: {results}") 
+            return results
         
         elif self.working_on_table == 'machinedata':
             df = pd.DataFrame()
@@ -86,12 +84,14 @@ class Selects(Tables):
                     break
                 batch_df = pd.DataFrame(chunk, columns = self.column_names)
                 df = pd.concat([df, batch_df], ignore_index= True)
+                print(df.head(10))
             return df
 
         elif self.working_on_table == 'pieza':
             stmt = general_stmt.where(or_(self.table_metadata.columns.of == '47315924', self.table_metadata.columns.resultado_medicion != 0))
             results = self.connection.execute(stmt).fetchall()
-            return f"Or statement results: {results}"  
+            print (f"Or statement results: {results}")
+            return results
 
     def aggregate_and_short_data(self):
         
@@ -117,6 +117,7 @@ class Selects(Tables):
                                     .where(and_(self.table_metadata.columns.tipo_rosca == "NO ROSCA", self.table_metadata.columns['LTH'] != 0))
                     self.opt2_percentajeLV = self.connection.execute(stmt).fetchall()
                     df = pd.DataFrame(self.opt2_percentajeLV, columns = ['id_herramienta','Tipo Hta','Cutting percent'])
+                    print(df.head(10))
                     return df
                 if option == 3:
                     stmt = select(self.table_metadata.columns.herramienta, func.sum(self.table_metadata.columns.n_reafilados).label("total_reafilados"), 
@@ -145,6 +146,7 @@ class Selects(Tables):
             stmt = select(self.table_metadata).order_by(self.table_metadata.columns['OF'], desc(self.table_metadata.columns.hora)) #if of is the same, order by desc 'hora': select * from machinedata order by `OF`, hora desc;
             results = self.connection.execute(stmt).fetchall()
             df = pd.DataFrame(results, columns=self.column_names)
+            print(df.head(10))
             return df
         
         if self.working_on_table == 'pieza':
@@ -156,71 +158,48 @@ class Selects(Tables):
             stmt1 = select(self.table_metadata.columns.resultado_medicion).where(self.table_metadata.columns.resultado_medicion != '0')
             results1= self.connection.execute(stmt1).fetchall()
             
-            return f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}"
+            print(f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}")
+            return results, results1
             
 def menu():
     dbcontroller = Selects()
-    table_to_work_on = None
-    while table_to_work_on not in dbcontroller.table_names:
-        table_to_work_on = input(f"Escoja la tabla en la que quiere trabajar de las siguientes {dbcontroller.table_names[:-1]}: ")
-        
-    dbcontroller.table_selection(table_to_work_on)
-    dbcontroller.table_from_metadata(table_to_work_on)
-   
-    opt_menu_1 = None
-    while opt_menu_1 not in [1,2]:
-        opt_menu_1 = int(input(f"""\nChoose what option do you want to select:\n
-                           1) Columns of the table \n
-                           2) Select data from the {dbcontroller.db}: 
-                           """))
+  
+    while True:
+        table_to_work_on = None
+        while table_to_work_on not in dbcontroller.table_names:
+            table_to_work_on = input(f"Escoja la tabla en la que quiere trabajar de las siguientes {dbcontroller.table_names[:-1]}: ")
 
-    if opt_menu_1 == 1:
-        print(f"The columns in this table are: {dbcontroller.column_names}")
-    if opt_menu_1 == 2:
-        extra_hta_option = "3) Specific Option for herramienta" if dbcontroller.working_on_table == 'herramienta' else " "
-        opt_menu_2 = int(input(f"""\n Wich type of select do you want to make?:\n
-                               1) Normal Select\n
-                               2) Where Select\n
-                               {extra_hta_option}
+        dbcontroller.table_selection(table_to_work_on)
+        dbcontroller.table_from_metadata(table_to_work_on)
+    
+        opt_menu_1 = None
+        while opt_menu_1 not in [1,2]:
+            opt_menu_1 = int(input(f"""\nChoose what option do you want to select:\n
+                               1) Columns of the table \n
+                               2) Select data from the {dbcontroller.db}: 
                                """))
-        
-        if opt_menu_2 == 1:
-            pass
-        if opt_menu_2 == 2:
-            pass
-        if opt_menu_2 == 3 and extra_hta_option:
-            pass
-        
-        print(select.working_on_table)
-        select.working_on_table= dbcontroller.working_on_table
-       # if opt_menu_2 == 1:
-       #     
-       # if opt_menu_2 == 2:
-       # if opt_menu_2 == 3:
+
+        if opt_menu_1 == 1:
+            print(f"The columns in this table are: {dbcontroller.column_names}")
+        if opt_menu_1 == 2:
+            opt_menu_2 =None
+            while opt_menu_2 not in [1,2,3]:
+                opt_menu_2 = int(input(f"""\n Wich type of select do you want to make?:\n
+                                   1) Normal Select\n
+                                   2) Where Select\n
+                                   3) Aggregate operations
+                                   """))
+
+            if opt_menu_2 == 1:
+                dbcontroller.normal_select()
+            if opt_menu_2 == 2:
+                dbcontroller.where_select()
+            if opt_menu_2 == 3:
+                dbcontroller.aggregate_and_short_data()
 
 def main():
     menu()
-    
-    
-    #dbmanager1 = DatabaseManager()
-    #tables = Tables('machinedata')
-    #print(f"table names {tables.get_tables_names_inspector()}")
-    #machine_table = tables.table_from_metadata()
-    #print(f"metadata of {repr(machine_table)} \n")
 
-
-    #select1 = Selects()
-    #select1.basic_select
-    #print(select1.select_where)
-    #print(select1.complex_selects)
-    # print(select1.opt1_sum)
-    #print(select1.opt2_percentajeLV)
-    #select_query = Selects()
-    #print(select_query.table_selected)
-    #select_query.basic_select
-    #select_query.where_select()
-    print("jdfk")
-    
 if __name__ == '__main__':
     main()
 
