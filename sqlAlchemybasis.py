@@ -30,33 +30,31 @@ class Tables(DatabaseManager):
     def __init__(self):
         super().__init__()
         self.table_names = self.get_tables_names_inspector()
-        self.table_metadata,self.column_names = self.table_from_metadata()
     
     def get_tables_names_inspector(self):
         inspector = inspect(self.engine)
         return inspector.get_table_names()
     
     
-    def table_selection(self, table = ""):
-        while table not in self.table_names:
-            table = input(f"Escoja la tabla sobre la que quiere trabajar ({self.table_names}): ")
-            self.working_on_table = table
+    def table_selection(self, table):
+        self.working_on_table = table
         return self.working_on_table
     
     #getting table metadata/reflectin the table
-    def table_from_metadata(self):
-        table_metadata = Table(self.table_selection(), self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
-        column_names = table_metadata.columns.keys()
-        return table_metadata,column_names
+    def table_from_metadata(self, table):
+        self.table_metadata = Table(self.table_selection(table), self.metadata, autoload_with=self.engine) #autoload is key, as it queries the database itself 
+        self.column_names = self.table_metadata.columns.keys()
+        return self.table_metadata,self.column_names
     
     
 class Selects(Tables):
 
     def __init__(self):
         super().__init__()
-        self.basic_select = self.normal_select()
-        self.select_where = self.where_select()
-        self.complex_selects = self.aggregate_and_short_data()
+        #self.basic_select = self.normal_select()
+        #self.select_where = self.where_select()
+        #self.complex_selects = self.aggregate_and_short_data()
+    #
        
     def normal_select(self):
         
@@ -161,26 +159,40 @@ class Selects(Tables):
             return f"Number of measurements presenting an error = {results[0][0]}, and the errors are = {results1}"
             
 def menu():
-    table = Tables()
+    dbcontroller = Selects()
+    table_to_work_on = None
+    while table_to_work_on not in dbcontroller.table_names:
+        table_to_work_on = input(f"Escoja la tabla en la que quiere trabajar de las siguientes {dbcontroller.table_names[:-1]}: ")
+        
+    dbcontroller.table_selection(table_to_work_on)
+    dbcontroller.table_from_metadata(table_to_work_on)
+   
     opt_menu_1 = None
     while opt_menu_1 not in [1,2]:
         opt_menu_1 = int(input(f"""\nChoose what option do you want to select:\n
                            1) Columns of the table \n
-                           2) Select data from the {table.db}: 
+                           2) Select data from the {dbcontroller.db}: 
                            """))
 
     if opt_menu_1 == 1:
-        print(f"The columns in this table are: {table.column_names}")
+        print(f"The columns in this table are: {dbcontroller.column_names}")
     if opt_menu_1 == 2:
-        extra_hta_option = "3) Specific Option for herramienta" if table.working_on_table == 'herramienta' else " "
+        extra_hta_option = "3) Specific Option for herramienta" if dbcontroller.working_on_table == 'herramienta' else " "
         opt_menu_2 = int(input(f"""\n Wich type of select do you want to make?:\n
                                1) Normal Select\n
                                2) Where Select\n
                                {extra_hta_option}
                                """))
-        select = Selects()
+        
+        if opt_menu_2 == 1:
+            pass
+        if opt_menu_2 == 2:
+            pass
+        if opt_menu_2 == 3 and extra_hta_option:
+            pass
+        
         print(select.working_on_table)
-        select.working_on_table=table.working_on_table
+        select.working_on_table= dbcontroller.working_on_table
        # if opt_menu_2 == 1:
        #     
        # if opt_menu_2 == 2:
